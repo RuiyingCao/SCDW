@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DNA存储解码可靠性分析系统</title>
+    <style>
+        :root {
+            --primary: #1f4e79;
+            --primary-dark: #173a5a;
+            --primary-light: #eaf2f8;
+            --accent: #3a7d44;
+            --accent-light: #eef7f0;
+            --warning: #b7791f;
+            --danger: #c53030;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --border: #d9e2ec;
+            --text: #243447;
+            --muted: #6b7c93;
+            --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+            line-height: 1.65;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .page-shell {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero {
+            background:
+                linear-gradient(135deg, rgba(31, 78, 121, 0.96), rgba(23, 58, 90, 0.96)),
+                linear-gradient(180deg, #1f4e79, #173a5a);
+            color: #fff;
+            padding: 56px 24px 40px;
+        }
+
+        .hero-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: 34px;
+            line-height: 1.3;
+            font-weight: 700;
+        }
+
+        .hero p {
+            margin: 16px 0 0;
+            max-width: 920px;
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .main {
+            max-width: 1280px;
+            width: 100%;
+            margin: -22px auto 48px;
+            padding: 0 24px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            padding: 24px 28px 0;
+        }
+
+        .card-body {
+            padding: 24px 28px 28px;
+        }
+
+        .card-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .card-subtitle {
+            margin: 10px 0 0;
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+        .tips {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            margin: 18px 0 0;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: #f8fbfd;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .tips strong {
+            color: var(--text);
+        }
+
+        .mode-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .mode-tab {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #fff;
+            padding: 16px 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-tab:hover {
+            border-color: var(--primary);
+            background: #fbfdff;
+        }
+
+        .mode-tab.active {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            box-shadow: inset 0 0 0 1px rgba(31, 78, 121, 0.06);
+        }
+
+        .mode-tab-title {
+            display: block;
+            font-weight: 700;
+            color: var(--text);
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .mode-tab-desc {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .hidden-native-select {
+            display: none;
+        }
+
+        .section-block {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #fff;
+            padding: 20px 18px;
+            margin-top: 18px;
+        }
+
+        .section-block h3 {
+            margin: 0 0 14px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .section-block p.block-desc {
+            margin: 0 0 16px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .grid-1 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: -2px;
+        }
+
+        input,
+        select,
+        button {
+            font: inherit;
+        }
+
+        input[type="number"],
+        input[type="file"],
+        select {
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input[type="number"]:focus,
+        input[type="file"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(31, 78, 121, 0.1);
+        }
+
+        .download-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: #f8fbfd;
+            border: 1px dashed var(--border);
+            font-size: 14px;
+        }
+
+        .action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-top: 24px;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 46px;
+            padding: 0 20px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 700;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 46px;
+            padding: 0 18px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .side-stack {
+            display: grid;
+            gap: 24px;
+        }
+
+        .info-list {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .info-list li + li {
+            margin-top: 8px;
+        }
+
+        .example-panel {
+            display: grid;
+            gap: 14px;
+        }
+
+        .example-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .example-item strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .example-item span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .mini-link {
+            white-space: nowrap;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: var(--primary-light);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .framework-wrap {
+            overflow: hidden;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: #fff;
+        }
+
+        .framework-wrap img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .footer-note {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        @media (max-width: 1100px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                padding-top: 44px;
+            }
+
+            .hero h1 {
+                font-size: 28px;
+            }
+
+            .main {
+                padding: 0 16px;
+            }
+
+            .card-header,
+            .card-body {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            .mode-tabs,
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .action-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .example-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page-shell">
+    <header class="hero">
+        <div class="hero-inner">
+            <div class="hero-badge">SCDW · Scientific Coverage Depth Web</div>
+            <h1>DNA存储非随机访问场景下解码可靠性分析与测序覆盖深度仿真系统</h1>
+            <p>
+                本系统支持基于测序数据、PCR扩增效率文件或纯模拟参数，对DNA存储信道进行建模，
+                并完成编码链恢复率分析、最小测序覆盖深度评估及相关图形展示。
+            </p>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="layout">
+            <!-- 左侧：参数配置 -->
+            <section class="card">
+                <div class="card-header">
+                    <h2 class="card-title">模拟配置</h2>
+                    <p class="card-subtitle">
+                        请先选择数据来源类型，再填写对应参数并提交分析。
+                    </p>
+                    <div class="tips">
+                        <div>ℹ</div>
+                        <div>
+                            <strong>数据格式提示：</strong>
+                            当前上传模式仅支持 TXT 文件。若为测序读数文件，建议每行包含一个数值。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <form action="/" method="post" enctype="multipart/form-data" id="uploadForm">
+                        <!-- 保留原有 select，供 Flask / JS 使用 -->
+                        <select name="fileType" id="fileType" class="hidden-native-select" required>
+                            <option value="sequencing">上传测序文件</option>
+                            <option value="pcr_efficiency">上传PCR扩增效率文件</option>
+                            <option value="simulate">纯模拟</option>
+                        </select>
+
+                        <!-- 自定义模式切换 -->
+                        <div class="mode-tabs" id="modeTabs">
+                            <div class="mode-tab active" data-mode="sequencing">
+                                <span class="mode-tab-title">上传测序文件</span>
+                                <span class="mode-tab-desc">基于真实测序读数进行分析与拟合。</span>
+                            </div>
+                            <div class="mode-tab" data-mode="pcr_efficiency">
+                                <span class="mode-tab-title">上传PCR扩增效率文件</span>
+                                <span class="mode-tab-desc">结合扩增效率与合成参数模拟测序结果。</span>
+                            </div>
+                            <div class="mode-tab" data-mode="simulate">
+                                <span class="mode-tab-title">纯模拟</span>
+                                <span class="mode-tab-desc">不依赖外部文件，直接给定参数生成数据。</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="synthesisnumDownload" style="display: block;">
+                            <div class="download-box">
+                                <span>示例数据：</span>
+                                <a href="/uploads/PCR30.txt" download="PCR30.txt">下载 example_PCR30.txt</a>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="PCREfficiencyDownload" style="display: none;">
+                            <div class="download-box">
+                                <span>示例数据：</span>
+                                <a href="/uploads/PCR_efficiency.txt" download="PCR_efficiency.txt">下载 example_PCR_efficiency.txt</a>
+                            </div>
+                        </div>
+
+                        <!-- 上传测序文件 -->
+                        <div class="section-block" id="sequencingOptions" style="display: block;">
+                            <h3>测序文件上传</h3>
+                            <p class="block-desc">
+                                适用于直接上传实验测序数据，后续可完成读数分布分析与信道分布拟合。
+                            </p>
+                            <div class="form-group">
+                                <label for="fileInput">选择测序文件</label>
+                                <input type="file" name="file" id="fileInput" required />
+                                <div class="helper-text" id="fileNameLabel">尚未选择文件</div>
+                            </div>
+                        </div>
+
+                        <!-- 上传PCR扩增效率文件 -->
+                        <div class="section-block" id="pcrEfficiencyOptions" style="display: none;">
+                            <h3>PCR扩增效率建模</h3>
+                            <p class="block-desc">
+                                适用于上传PCR扩增效率文件，并结合合成参数与PCR循环次数生成模拟数据。
+                            </p>
+
+                            <div class="form-group">
+                                <label for="pcrEfficiencyFileInput">选择PCR扩增效率文件</label>
+                                <input type="file" name="pcr_efficiency_file" id="pcrEfficiencyFileInput" />
+                                <div class="helper-text" id="pcrEfficiencyFileNameLabel">尚未选择文件</div>
+                            </div>
+
+                            <div class="grid-2">
+                                <div class="form-group" id="optionContainer" style="display: none;">
+                                    <label for="option">合成选项</label>
+                                    <select name="option" id="option">
+                                        <option value="per_sequence">每种序列的期望合成条数</option>
+                                        <option value="total_sequences">所有序列的总期望合成条数</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="t_pcr_efficiency">PCR循环次数</label>
+                                    <input type="number" name="t_pcr_efficiency" id="t_pcr_efficiency" min="1" value="15" required />
+                                </div>
+                            </div>
+
+                            <div id="perSequenceOptions" style="display: none;">
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label for="x">每种序列合成多少条</label>
+                                        <input type="number" name="x" id="x" value="5" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="y">允许合成条数的方差</label>
+                                        <input type="number" name="y" id="y" value="2" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="totalSequencesOption" style="display: none;">
+                                <div class="form-group">
+                                    <label for="S">总共合成多少条</label>
+                                    <input type="number" name="S" id="S" value="50000" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 纯模拟 -->
+                        <div class="section-block" id="simulateOptions" style="display: none;">
+                            <h3>纯模拟参数设置</h3>
+                            <p class="block-desc">
+                                适用于不上传文件、直接指定序列数、PCR扩增效率与合成参数进行模拟。
+                            </p>
+
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label for="n">信息链条数</label>
+                                    <input type="number" name="n" id="n" value="10000" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="t_simulate">PCR循环次数</label>
+                                    <input type="number" name="t_simulate" id="t_simulate" value="15" min="1" required />
+                                </div>
+                            </div>
+
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label for="simulateX">PCR扩增效率</label>
+                                    <input type="number" name="simulateX" id="simulateX" value="0.9" min="0" max="1" step="0.01" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="simulateY">允许PCR扩增效率的方差</label>
+                                    <input type="number" name="simulateY" id="simulateY" value="0.05" min="0" max="1" step="0.01" />
+                                </div>
+                            </div>
+
+                            <div class="grid-2">
+                                <div class="form-group" id="simulateOptionContainer" style="display: none;">
+                                    <label for="simulateOption">合成选项</label>
+                                    <select name="simulateOption" id="simulateOption">
+                                        <option value="per_sequence">每种序列的期望合成条数</option>
+                                        <option value="total_sequences">所有序列的总期望合成条数</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="simulatePerSequenceOptions" style="display: none;">
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label for="simulateXPerSequence">每种序列合成多少条</label>
+                                        <input type="number" name="simulateXPerSequence" id="simulateXPerSequence" value="5" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="simulateYPerSequence">允许合成条数的方差</label>
+                                        <input type="number" name="simulateYPerSequence" id="simulateYPerSequence" value="2" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="simulateTotalSequencesOption" style="display: none;">
+                                <div class="form-group">
+                                    <label for="simulateS">总共合成多少条</label>
+                                    <input type="number" name="simulateS" id="simulateS" value="50000" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="action-row">
+                            <button type="submit" class="btn-primary">确认上传并开始分析</button>
+                            <button type="button" class="btn-ghost" onclick="window.location.href='/'">重置页面</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- 右侧：说明信息 -->
+            <aside class="side-stack">
+                <section class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">使用说明</h2>
+                        <p class="card-subtitle">建议按“数据来源选择 → 参数设置 → 提交分析”的流程操作。</p>
+                    </div>
+                    <div class="card-body">
+                        <ol class="info-list">
+                            <li>上传测序文件时，可直接对实验读数分布进行统计分析与信道分布拟合。</li>
+                            <li>上传PCR扩增效率文件时，系统将结合扩增效率、合成参数与PCR循环次数进行模拟。</li>
+                            <li>纯模拟模式下，系统根据设定参数自动生成数据并完成后续分析。</li>
+                            <li>建议优先使用示例文件进行测试，以确认输入格式与参数范围是否正确。</li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">示例数据与资源</h2>
+                        <p class="card-subtitle">你可以先下载示例文件，确认格式后再上传自己的数据。</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="example-panel">
+                            <div class="example-item">
+                                <div>
+                                    <strong>测序读数示例</strong>
+                                    <span>适用于“上传测序文件”模式。</span>
+                                </div>
+                                <a class="mini-link" href="/uploads/PCR30.txt" download="PCR30.txt">下载文件</a>
+                            </div>
+                            <div class="example-item">
+                                <div>
+                                    <strong>PCR扩增效率示例</strong>
+                                    <span>适用于“上传PCR扩增效率文件”模式。</span>
+                                </div>
+                                <a class="mini-link" href="/uploads/PCR_efficiency.txt" download="PCR_efficiency.txt">下载文件</a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+        <section class="card" style="margin-top: 24px;">
+            <div class="card-header">
+                <h2 class="card-title">DNA存储流程与参数说明</h2>
+                <p class="card-subtitle">用于帮助用户理解软件中的输入参数及分析对象。</p>
+            </div>
+            <div class="card-body">
+                <div class="framework-wrap">
+                    <img src="/static/framework.png" alt="DNA存储流程及软件参数形象化说明">
+                </div>
+                <div class="footer-note">
+                    图示可辅助理解合成、PCR扩增、测序与解码之间的关系，以及软件参数的物理含义。
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+    </main>
+</div>
+
+<script>
+    function toggleDownloadLinks() {
+        const fileType = document.getElementById('fileType').value;
+        const synthesisnumDownload = document.getElementById('synthesisnumDownload');
+        const PCREfficiencyDownload = document.getElementById('PCREfficiencyDownload');
+
+        synthesisnumDownload.style.display = fileType === 'sequencing' ? 'block' : 'none';
+        PCREfficiencyDownload.style.display = fileType === 'pcr_efficiency' ? 'block' : 'none';
+    }
+
+    function setActiveTab(fileType) {
+        document.querySelectorAll('.mode-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.mode === fileType);
+        });
+    }
+
+    function toggleRequiredFields() {
+        const fileType = document.getElementById('fileType').value;
+        const pcrEfficiencyOptions = document.getElementById('pcrEfficiencyOptions');
+        const simulateOptions = document.getElementById('simulateOptions');
+        const sequencingOptions = document.getElementById('sequencingOptions');
+
+        document.querySelectorAll('#uploadForm input[required]').forEach(input => input.removeAttribute('required'));
+        document.querySelectorAll('#uploadForm select[required]').forEach(select => select.removeAttribute('required'));
+
+        if (fileType === 'sequencing') {
+            sequencingOptions.style.display = 'block';
+            pcrEfficiencyOptions.style.display = 'none';
+            simulateOptions.style.display = 'none';
+            document.getElementById('fileInput').setAttribute('required', 'required');
+        } else if (fileType === 'pcr_efficiency') {
+            sequencingOptions.style.display = 'none';
+            pcrEfficiencyOptions.style.display = 'block';
+            simulateOptions.style.display = 'none';
+
+            document.getElementById('pcrEfficiencyFileInput').setAttribute('required', 'required');
+            document.getElementById('optionContainer').style.display = 'block';
+            document.getElementById('option').setAttribute('required', 'required');
+            document.getElementById('x').setAttribute('required', 'required');
+            document.getElementById('y').setAttribute('required', 'required');
+            document.getElementById('t_pcr_efficiency').setAttribute('required', 'required');
+            togglePcrEfficiencyOptions();
+        } else if (fileType === 'simulate') {
+            sequencingOptions.style.display = 'none';
+            pcrEfficiencyOptions.style.display = 'none';
+            simulateOptions.style.display = 'block';
+
+            document.getElementById('n').setAttribute('required', 'required');
+            document.getElementById('simulateX').setAttribute('required', 'required');
+            document.getElementById('simulateY').setAttribute('required', 'required');
+            document.getElementById('simulateOptionContainer').style.display = 'block';
+            document.getElementById('t_simulate').setAttribute('required', 'required');
+            toggleSimulateOptions();
+        }
+
+        toggleDownloadLinks();
+        setActiveTab(fileType);
+    }
+
+    function togglePcrEfficiencyOptions() {
+        const option = document.getElementById('option').value;
+        const perSequenceOptions = document.getElementById('perSequenceOptions');
+        const totalSequencesOption = document.getElementById('totalSequencesOption');
+
+        perSequenceOptions.style.display = option === 'total_sequences' ? 'none' : 'block';
+        totalSequencesOption.style.display = option === 'total_sequences' ? 'block' : 'none';
+
+        if (option === 'total_sequences') {
+            document.getElementById('S').setAttribute('required', 'required');
+        } else {
+            document.getElementById('S').removeAttribute('required');
+        }
+    }
+
+    function toggleSimulateOptions() {
+        const simulateOption = document.getElementById('simulateOption').value;
+        const simulatePerSequenceOptions = document.getElementById('simulatePerSequenceOptions');
+        const simulateTotalSequencesOption = document.getElementById('simulateTotalSequencesOption');
+
+        simulatePerSequenceOptions.style.display = simulateOption === 'total_sequences' ? 'none' : 'block';
+        simulateTotalSequencesOption.style.display = simulateOption === 'total_sequences' ? 'block' : 'none';
+
+        if (simulateOption === 'total_sequences') {
+            document.getElementById('simulateS').setAttribute('required', 'required');
+        } else {
+            document.getElementById('simulateS').removeAttribute('required');
+        }
+    }
+
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.addEventListener('click', function () {
+            const mode = this.dataset.mode;
+            document.getElementById('fileType').value = mode;
+            toggleRequiredFields();
+        });
+    });
+
+    document.getElementById('fileType').addEventListener('change', function () {
+        toggleRequiredFields();
+    });
+
+    document.getElementById('option').addEventListener('change', function () {
+        togglePcrEfficiencyOptions();
+    });
+
+    document.getElementById('simulateOption').addEventListener('change', function () {
+        toggleSimulateOptions();
+    });
+
+    document.getElementById('fileInput').addEventListener('change', function (event) {
+        const fileName = event.target.files[0] ? event.target.files[0].name : '尚未选择文件';
+        document.getElementById('fileNameLabel').textContent = fileName;
+    });
+
+    document.getElementById('pcrEfficiencyFileInput').addEventListener('change', function (event) {
+        const fileName = event.target.files[0] ? event.target.files[0].name : '尚未选择文件';
+        document.getElementById('pcrEfficiencyFileNameLabel').textContent = fileName;
+    });
+
+    toggleRequiredFields();
+    togglePcrEfficiencyOptions();
+    toggleSimulateOptions();
+</script>
+</body>
+</html>

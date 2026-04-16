@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DNA存储解码可靠性分析结果</title>
+    <style>
+        :root {
+            --primary: #1f4e79;
+            --primary-dark: #173a5a;
+            --primary-light: #eaf2f8;
+            --accent: #3a7d44;
+            --accent-light: #eef7f0;
+            --warning: #b7791f;
+            --danger: #c53030;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --border: #d9e2ec;
+            --text: #243447;
+            --muted: #6b7c93;
+            --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+            line-height: 1.7;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        .topbar {
+            background:
+                linear-gradient(135deg, rgba(31, 78, 121, 0.96), rgba(23, 58, 90, 0.96)),
+                linear-gradient(180deg, #1f4e79, #173a5a);
+            color: #fff;
+            padding: 28px 24px 34px;
+        }
+
+        .topbar-inner {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        .topbar p {
+            margin: 12px 0 0;
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.88);
+            max-width: 980px;
+        }
+
+        .top-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .top-chip {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            font-size: 13px;
+        }
+
+        .page {
+            max-width: 1440px;
+            margin: -18px auto 40px;
+            padding: 0 24px;
+            display: grid;
+            grid-template-columns: 260px minmax(0, 1fr);
+            gap: 24px;
+            align-items: start;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 20px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 18px 18px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 17px;
+            color: var(--primary);
+        }
+
+        .sidebar-header p {
+            margin: 8px 0 0;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .sidebar nav { padding: 10px; }
+
+        .sidebar a {
+            display: block;
+            padding: 12px 14px;
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .sidebar a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .content { display: grid; gap: 24px; }
+
+        .status-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 20px;
+            background: var(--accent-light);
+            border: 1px solid #cfe7d4;
+            border-radius: 14px;
+            color: #255b2c;
+        }
+
+        .status-banner strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 16px;
+        }
+
+        .status-banner span { font-size: 14px; }
+
+        .status-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary,
+        .btn-ghost {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 0 16px;
+            border-radius: 10px;
+            font: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover { background: var(--primary-dark); }
+
+        .btn-ghost {
+            background: #fff;
+            color: var(--text);
+            border: 1px solid var(--border);
+            font-weight: 600;
+        }
+
+        .btn-ghost:hover { background: #f8fbfd; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .summary-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: var(--shadow);
+            padding: 18px;
+        }
+
+        .summary-card .label {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .summary-card .value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            word-break: break-word;
+        }
+
+        .section {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .section-head {
+            padding: 22px 24px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .section-desc {
+            margin: 10px 0 0;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .section-body {
+            padding: 24px;
+        }
+
+        .soft-note {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: #f8fbfd;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .soft-note strong { color: var(--text); }
+
+        .image-grid-2,
+        .panel-grid,
+        .triple-metrics {
+            display: grid;
+            gap: 18px;
+        }
+
+        .image-grid-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .panel-grid {
+            grid-template-columns: 1fr 1fr;
+            margin-top: 22px;
+        }
+
+        .triple-metrics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-top: 18px;
+        }
+
+        .figure-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .figure-media {
+            background: #fff;
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .figure-media img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .figure-caption {
+            padding: 14px 16px 16px;
+        }
+
+        .figure-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .figure-text {
+            font-size: 14px;
+            color: var(--muted);
+            margin: 0;
+        }
+
+        .panel {
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #fcfdff;
+            padding: 18px;
+        }
+
+        .panel h4 {
+            margin: 0 0 14px;
+            font-size: 17px;
+            color: var(--primary);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .form-group:last-child { margin-bottom: 0; }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: -2px;
+        }
+
+        input, select, button { font: inherit; }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            min-height: 42px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(31, 78, 121, 0.1);
+        }
+
+        .result-box,
+        .coordinate-box {
+            border-radius: 12px;
+            background: #fff;
+            padding: 14px 16px;
+            min-height: 56px;
+            font-size: 14px;
+        }
+
+        .result-box {
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .coordinate-box {
+            border: 1px dashed var(--border);
+            color: var(--muted);
+        }
+
+        .metric-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .metric-card .metric-name {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .metric-card .metric-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        .subsection {
+            margin-top: 22px;
+            padding-top: 22px;
+            border-top: 1px solid var(--border);
+        }
+
+        .subsection:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .subsection-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 10px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .toast {
+            position: fixed;
+            top: 22px;
+            right: 22px;
+            background: #255b2c;
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-8px);
+            transition: all 0.25s ease;
+            font-size: 14px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 1200px) {
+            .page { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+            .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .image-grid-2,
+            .panel-grid,
+            .triple-metrics { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .topbar h1 { font-size: 26px; }
+            .page { padding: 0 16px; }
+            .summary-grid { grid-template-columns: 1fr; }
+            .section-head, .section-body { padding-left: 18px; padding-right: 18px; }
+            .status-banner { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <h1>DNA存储非随机访问场景下解码可靠性分析结果</h1>
+            <p>
+                本页面展示基于纯模拟参数生成的数据分析结果，包括样本信息检索完整性、无噪信道覆盖深度以及噪声信道上下界估计。
+            </p>
+            <div class="top-meta">
+                <div class="top-chip">系统：SCDW</div>
+                <div class="top-chip">分析对象：DNA存储信道</div>
+                <div class="top-chip">输入类型：纯模拟</div>
+                <div class="top-chip">当前 PCR 循环次数：{{ session.get("t", 10) }}</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="page">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>结果导航</h3>
+                <p>点击可快速跳转到对应分析模块。</p>
+            </div>
+            <nav>
+                <a href="#sample-info">样本信息检索完整性</a>
+                <a href="#min-coverage">解码全部数据所需最小测序覆盖深度</a>
+                <a href="#noiseless-channel">无噪信道中的模拟结果</a>
+                <a href="#noisy-channel">噪声信道中的模拟结果</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <div class="status-banner">
+                <div>
+                    <strong>分析已完成</strong>
+                    <span>当前结果已生成。你可以继续调整参数并刷新图像或数值结果。</span>
+                </div>
+                <div class="status-actions">
+                    <button class="btn-ghost" onclick="window.location.href='/'">返回首页</button>
+                </div>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="label">当前输入</div>
+                    <div class="value">纯模拟数据</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">样本信息分析</div>
+                    <div class="value">图7-1 可交互更新</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">无噪覆盖深度</div>
+                    <div class="value">图7-2 可交互更新</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">噪声覆盖深度</div>
+                    <div class="value">上下界可交互更新</div>
+                </div>
+            </div>
+
+            <section class="section" id="sample-info">
+                <div class="section-head">
+                    <h2 class="section-title">样本信息检索完整性</h2>
+                    <p class="section-desc">
+                        在无噪信道假设下，分析固定测序覆盖深度对应的期望解码比例，或反求达到目标解码比例所需的最小测序覆盖深度。
+                    </p>
+                </div>
+                <div class="section-body">
+                    <div class="soft-note">
+                        <strong>本模块说明：</strong>
+                        每条编码链仅需一个测序片段即可成功检索。用户可在“预设测序覆盖深度”和“预设编码链解码比例”两种模式间切换。
+                    </div>
+
+                    <div class="image-grid-2">
+                        <article class="figure-card">
+                            <div class="figure-media">
+                                <img id="fig7-1" src="{{ url_for('uploaded_file', filename='图7-1.png') }}" alt="图7-1" style="width: 80%; margin: 0 auto;">
+                            </div>
+                            <div class="figure-caption">
+                                <div class="figure-label">图1 编码链期望解码比例与测序覆盖深度关系</div>
+                                <p class="figure-text">
+                                    展示均匀信道和模拟信道中编码链期望解码比例与测序覆盖深度之间的关系。
+                                </p>
+                            </div>
+                        </article>
+
+                        <div class="panel">
+                            <h4>参数设置与结果读取</h4>
+
+                            <div class="form-group">
+                                <label for="choice">模拟选项</label>
+                                <select id="choice" onchange="toggleInput()">
+                                    <option value="preset_coverage">预设测序覆盖深度</option>
+                                    <option value="expected_proportion">预设编码链解码比例</option>
+                                </select>
+                            </div>
+
+                            <div id="preset_coverage_input" class="form-group">
+                                <label for="preset_coverage">预设测序覆盖深度</label>
+                                <input type="number" id="preset_coverage" step="0.5" min="0.5" max="30" value="5">
+                                <button class="btn-primary" onclick="submitPresetCoverage()">更新参数</button>
+                            </div>
+
+                            <div id="expected_proportion_input" class="form-group" style="display: none;">
+                                <label for="expected_proportion">预设编码链解码比例</label>
+                                <input type="number" id="expected_proportion" step="0.01" min="0" max="1" value="0.5">
+                                <button class="btn-primary" onclick="submitExpectedProportion()">更新参数</button>
+                            </div>
+
+                            <div style="margin-top: 16px;">
+                                <div class="helper-text" style="margin-bottom: 8px;">模拟结果</div>
+                                <div id="result_message" class="coordinate-box"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="min-coverage">
+                <div class="section-head">
+                    <h2 class="section-title">解码全部数据所需最小测序覆盖深度</h2>
+                    <p class="section-desc">
+                        分别给出无噪信道和噪声信道下的最小测序覆盖深度分析结果，并支持参数交互更新。
+                    </p>
+                </div>
+
+                <div class="section-body">
+                    <div class="subsection" id="noiseless-channel">
+                        <h3 class="subsection-title">无噪信道中的模拟结果</h3>
+
+                        <div class="soft-note">
+                            <strong>本模块输出：</strong>
+                            在每条编码链仅需一个测序片段即可成功解码的条件下，给出成功恢复全部信息所需的最小期望测序覆盖深度。
+                        </div>
+
+                        <div class="image-grid-2">
+                            <article class="figure-card">
+                                <div class="figure-media">
+                                    <img id="fig7-2" src="{{ url_for('uploaded_file', filename='图7-2.png') }}" alt="图7-2" style="width: 80%; margin: 0 auto;">
+                                </div>
+                                <div class="figure-caption">
+                                    <div class="figure-label">图2 期望测序覆盖深度与码率关系</div>
+                                    <p class="figure-text">
+                                        展示成功解码全部信息所需的期望测序覆盖深度与码率之间的关系。
+                                    </p>
+                                </div>
+                            </article>
+
+                            <div class="panel">
+                                <h4>参数设置</h4>
+
+                                <div class="form-group">
+                                    <label for="coding_redundancy">编码冗余参数</label>
+                                    <div class="helper-text">
+                                        对应
+                                        \[
+                                        \frac{编码链条数}{信息链条数}
+                                        \]
+                                    </div>
+                                    <input type="number" id="coding_redundancy" step="0.1" min="0.95" max="4" value="2">
+                                </div>
+
+                                <button class="btn-primary" onclick="submitCodingRedundancy()">更新参数</button>
+
+                                <div style="margin-top: 16px;">
+                                    <div class="helper-text" style="margin-bottom: 8px;">模拟结果</div>
+                                    <div id="coding_redundancy_result" class="coordinate-box"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="subsection" id="noisy-channel">
+                        <h3 class="subsection-title">噪声信道中的模拟结果</h3>
+
+                        <div class="soft-note">
+                            <strong>本模块输出：</strong>
+                            在每条编码链需至少两个测序片段才可成功解码的条件下，给出恢复全部信息所需测序覆盖深度的上下界估计。
+                        </div>
+
+                        <div class="panel-grid">
+                            <div class="panel">
+                                <h4>参数设置</h4>
+
+                                <div class="form-group">
+                                    <label for="R_noisy">编码冗余参数</label>
+                                    <div class="helper-text">
+                                        对应
+                                        \[
+                                        \frac{编码链条数}{信息链条数}
+                                        \]
+                                    </div>
+                                    <input type="number" id="R_noisy" step="0.1" min="1.1" value="2">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="a">重建每条编码链所需其噪声拷贝数量</label>
+                                    <input type="number" id="a" step="1" min="2" value="2">
+                                </div>
+
+                                <button class="btn-primary" onclick="submitBoundsParameters()">更新参数</button>
+
+                                <div style="margin-top: 16px;">
+                                    <div class="helper-text" style="margin-bottom: 8px;">参数反馈</div>
+                                    <div id="bounds_result" class="coordinate-box"></div>
+                                </div>
+                            </div>
+
+                            <div class="panel">
+                                <h4>结果说明</h4>
+                                <div class="result-box">以下上下界以 99.9% 的概率成立。</div>
+
+                                <div class="triple-metrics">
+                                    <div class="metric-card">
+                                        <div class="metric-name">下界</div>
+                                        <div class="metric-value" id="lower_bound_value">{{ lower_bound }}</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div class="metric-name">上界</div>
+                                        <div class="metric-value" id="upper_bound_value">{{ upper_bound }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="toast" id="success-alert">更新成功</div>
+
+    <script>
+        function showAlert(message = '更新成功') {
+            const alertBox = document.getElementById('success-alert');
+            alertBox.textContent = message;
+            alertBox.classList.add('show');
+            setTimeout(() => {
+                alertBox.classList.remove('show');
+            }, 2200);
+        }
+
+        function toggleInput() {
+            const choice = document.getElementById('choice').value;
+            const presetCoverageInput = document.getElementById('preset_coverage_input');
+            const expectedProportionInput = document.getElementById('expected_proportion_input');
+
+            if (choice === 'preset_coverage') {
+                presetCoverageInput.style.display = 'flex';
+                expectedProportionInput.style.display = 'none';
+            } else if (choice === 'expected_proportion') {
+                presetCoverageInput.style.display = 'none';
+                expectedProportionInput.style.display = 'flex';
+            }
+        }
+
+        const t = {{ session.get("t", 10) }};
+
+        function submitPresetCoverage() {
+            const presetCoverage = document.getElementById('preset_coverage').value;
+            fetch('/update_figure1', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    choice: 'preset_coverage',
+                    value: presetCoverage,
+                    t: t
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('result_message').innerText = data.message;
+                    const img = document.getElementById('fig7-1');
+                    img.src = data.image_url;
+                    showAlert('更新成功');
+                } else {
+                    document.getElementById('result_message').innerText = data.message;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function submitExpectedProportion() {
+            const expectedProportion = document.getElementById('expected_proportion').value;
+            fetch('/update_figure1', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    choice: 'expected_proportion',
+                    value: expectedProportion,
+                    t: t
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('result_message').innerText = data.message;
+                    const img = document.getElementById('fig7-1');
+                    img.src = data.image_url;
+                    showAlert('更新成功');
+                } else {
+                    document.getElementById('result_message').innerText = data.message;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function submitCodingRedundancy() {
+            const codingRedundancy = document.getElementById('coding_redundancy').value;
+            fetch('/update_figure2', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    coding_redundancy: codingRedundancy,
+                    t: t
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('coding_redundancy_result').innerText = data.message;
+                    const img = document.getElementById('fig7-2');
+                    img.src = data.image_url;
+                    showAlert('更新成功');
+                } else {
+                    document.getElementById('coding_redundancy_result').innerText = data.message;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function submitBoundsParameters() {
+            const R_noisy = document.getElementById('R_noisy').value;
+            const a = document.getElementById('a').value;
+            fetch('/update_bounds_parameters', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    R_noisy: R_noisy,
+                    a: a
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('lower_bound_value').innerText = data.lower_bound;
+                    document.getElementById('upper_bound_value').innerText = data.upper_bound;
+                    document.getElementById('bounds_result').innerText = '';
+                    showAlert('更新成功');
+                } else {
+                    document.getElementById('bounds_result').innerText = data.message;
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        window.onload = function () {
+            toggleInput();
+        };
+    </script>
+</body>
+</html>
